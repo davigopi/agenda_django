@@ -175,6 +175,11 @@ c = Contact.objects.all().filter(pk=2) 			# criar um filtro soble todos os objet
 c = Contact.objects.all().order_by('-id')		# ira retorna lista onde ordenada decrecente pelo id
 c = Contact.objects.create(first_name='Sofia')	# Cria um contato (Não lazy) OBS:sem precisar o c.save()
 
+from django.contrib.auth.models import User		# importa o modulo
+user = User.objects.create_user(username='usuario', password='123')  # criar usuario
+user.is_staff = True							# ira permitir ele logar no 127.0.0.1:8000/admin/
+user.save()										# salvar na base de dados
+
 quit()											# sair
 	
 
