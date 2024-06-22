@@ -1,0 +1,199 @@
+
+===== Django =============================================================================================
+OBS: 'project' significa o nome do projeto
+OBS: 'contact' significa o nome do APP
+OBS: 'base_static' significa o nome da pasta de arquivos statico
+OBS: 'base_templates' significa o nome da pasta de arqvuios templates
+site de configurações: # https://whitenoise.readthedocs.io/en/latest/
+instala o dbeaver para ver o banco db.sqlite3
+
+===== venv ===============================================================================================
+python -m venv venv
+.\venv\Scripts\activate
+
+===== pip install ========================================================================================
+pip install django
+pip install whitenoise  				# Maneira de pegar os arquivos static sem ser local 
+pip install pillow						# para utilizar ImageField()
+===== Comandos ===========================================================================================
+django-admin startproject project .  	# django-admin startproject nomeprojeto .
+python manage.py --help
+python manage.py startapp contact  		# criar um app  
+
+python manage.py collectstatic  		# pegar todos os arquivos static e copiar para uma pasta 
+
+python manage.py migrate				# acessar sistema administrativo do django como http://127.0.0.1:8000/admin
+python manage.py createsuperuser		# para crair o super usuário 
+python manage.py changepassword davi	# para altera senha se esqueceu
+python manage.py makemigrations			# cria uma migração para depois com migrate salvar na base de dados
+python manage.py migrate				# confirma a migração 
+python manage.py shell					# possiblitar configurações direto na banco de dados
+
+python manage.py runserver  			# executa projeto
+
+===== arquivos templates ================================================================================
+'base_templates'  								# Criar pasta raiz dos templates importados para app
+'base_templates'\global  						# criar pasta para não dar conflito
+'base_templates'\global\index.html  			# arquivo que sera importado pelos app
+'base_templates'\global\partals 				# criar pasta para colocar partes de html qque serão importadas pelo index.html
+'base_templates'\global\partals\head.html  		# arquivo que sera colocado na importoção do index.html
+'base_templates'\global\partals\headEnd.html  	# arquivo que sera colocado na importoção do index.html
+
+===== arquivos static ===================================================================================
+base_static  									# Criar pasta raiz dos static importados para app
+base_static\global  							# criar pasta para não dar conflito
+base_static\global\css  						# Criar parsta para arquivos que serão importado pelos .html
+base_static\global\images  						# Criar parsta para arquivos que serão importado pelos .html
+base_static\global\js  							# Criar parsta para arquivos que serão importado pelos .html 
+base_static\global\css  						# Criar parsta para arquivos que serão importado pelos .html 
+base_static\global\css\style.css  				# criar arquivo de css para importação
+
+===== project\settings.py ================================================================================
+# principais configurações
+INSTALLED_APPS = [ 'contact', ]   							# adicionar o contact que esta: home\apps.py
+TEMPLATES = [{ 'DIRS': [BASE_DIR / 'base_templates']],},]  	# para arquivos templates
+STATIC_URL = 'static/'										# Padrão de nome static
+STATICFILES_DIRS = ( BASE_DIR / 'base_static', ) 			# para arqvuios estaticos
+LANGUAGE_CODE = 'pt-br'										# altera o idiona
+TIME_ZONE = 'America/Fortaleza'								# altera o fuso horário
+DEBUG = False     
+ALLOWED_HOSTS = ['127.0.0.1']
+STATIC_ROOT = BASE_DIR / 'static_files'   					# define local dos arquivos static
+STATIC_ROOT = BASE_DIR / 'static'  							# collectstatic
+MEDIA_URL = 'media/'
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+===== project\urls.py ===================================================================================
+# encaminhamento das request e response								
+from django.contrib import admin
+from django.urls import path, include
+from django.conf.urls.static import static
+from django.conf import settings
+
+urlpatterns = [
+    path('', include('contact.urls')),
+    path('admin/', admin.site.urls),
+]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+===== contact\urls.py  ==================================================================================
+# criar arquivo
+from django.urls import path
+from . import views
+# from contact import views
+app_name = 'contact'	
+
+urlpatterns = [
+	path('', views.index, name='index'),
+	# path('exemplo/', views.exemplo),
+]
+
+===== contact\views.py ===================================================================================
+# editar arquivo
+from django.shortcuts import render
+def index(request):
+	return render(
+		request,
+		'contact/index.html',
+	)
+	
+===== conatact\models.py =================================================================================
+from django.db import models
+from django.utils import timezone
+# id (primary key - automático)
+# first_name (string), last_name (string), phone (string)
+# email (email), created_date (date), description (text)
+# category (foreign key), show (boolean), picture (imagem)
+# owner (foreign key)
+
+class Category(models.Model):
+    name = models.CharField(max_length=50)
+
+    def __str__(self) -> str:
+        return self.name
+    
+class Contact(models.Model):
+
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    phone = models.CharField(max_length=50)
+    email = models.EmailField(max_length=254, blank=True)   # blank=True define como opcional
+    created_date = models.DateTimeField(default=timezone.now)
+    description = models.TextField(blank=True)
+    show = models.BooleanField(default=True)
+    picture = models.ImageField(blank=True, upload_to='pictures/%Y/%m/')
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,  # apagar categoria contatos null
+        blank=True, null=True
+    ) # on_delete=models.CASCADE,  -> apagar categoria apaga contatos com categoria
+    
+    def __str__(self) -> str:
+        return f'{self.first_name} {self.last_name}'
+
+
+===== conatact\admin.py =================================================================================
+from django.contrib import admin
+from contact import models
+
+@admin.register(models.Contact)
+class ContactAdmin(admin.ModelAdmin):
+    list_display = 'id', 'first_name', 'last_name', 'phone',
+    ordering = '-id',
+    # list_filter = 'created_date',
+    search_fields = 'id', 'first_name', 'last_name', 
+    list_per_page = 10
+    list_max_show_all = 200
+    list_editable = 'first_name', 'last_name',  # se tive aqui não pode esta no list_display_links
+    list_display_links = 'id', 'phone',
+
+@admin.register(models.Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = 'name',
+    ordering = '-id',
+	
+
+===== python manage.py shell =============================================================================
+from contact.models import Contact				# importa o modulo
+Contact											# para ver se esta funcionando
+c = Contact(first_name='Sofia')					# Cria um contato (Lazy) OBS: blank=True não funciona aqui
+c.save()										# salvar na base de dados
+c.last_name = 'Pinheiro'						# utiliza a variavel e coloca o campo lst_name
+c.save()										# salvar na base de dados
+contact.field_name1 = 'Novo valor 1'			# Edita um contato
+c.save()										# salvar na base de dados
+c.delete()										# excluir usuairo
+c = Contact.objects.get(id=2)					# Selecinar o usuario de id 2 para editar pode utilizar id ou pk
+c = Contact.objects.all()						# seleciona todos os valores
+c 												# mostra tudo do c
+for contato in c: contato.first_name			# mosta dos os first_name
+c = Contact.objects.filter(pk=2)				# criar um filtro
+c = Contact.objects.all().filter(pk=2) 			# criar um filtro soble todos os objeto mesma coisa do de cima
+c = Contact.objects.all().order_by('-id')		# ira retorna lista onde ordenada decrecente pelo id
+c = Contact.objects.create(first_name='Sofia')	# Cria um contato (Não lazy) OBS:sem precisar o c.save()
+
+quit()											# sair
+	
+
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
+==========================================================================================================
